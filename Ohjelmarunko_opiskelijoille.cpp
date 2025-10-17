@@ -29,23 +29,18 @@
 using namespace std;
 
 //kaikkialla tarvittavat tunnisteet  määritellään globaalilla alueella
-// args of shared memory segment
-const char* SEM_NAME = "/dummySem";
-int segmentId;
-const int segmentSize = 1024;
-
 //OPISKELIJA: muistele harjoituksista miten eri asiat määriteltiin
 //OPISKELIJA: tehtäväsi on sijoittaa itse labyrinttikin jaettuun muistialueeseen ja käyttää sitä sieltä
 //->eli:labyrintin käyttö globaalilta alueelta jaetun muistin käyttöön
 //vinkki: kannattaa määritellä pointteri nimeltä labyrintti kaksiuloitteiseen taulukkoon jolloin nykytoteutus toimii sellaisenaan
 //parent/main alustaa jaettun muistin (eli kirjoittaa sinne) nuo labyrintin alkiot
-//poista labyrintti kokonaan globaalilta alueelta, ohjelman pitäisi toimia 
+//poista labyrintti kokonaan globaalilta alueelta, ohjelman pitäisi toimia
 //mieti harjoituksista opitun perusteella paljonko labyrintti vähintään tarvitsee jaettua muistia
 //tee kaikki ratkaisut niin että ohjelma toimii millä tahansa labyrintilla
 
 //definet voi jättää globaalille alueelle, ne on sitten tiedossa koko tiedostossa
-#define KORKEUS 100 //rivien määrä alla
-#define LEVEYS 100 //sarakkaiden määrä alla
+//#define KORKEUS 100 //rivien määrä alla
+//#define LEVEYS 100 //sarakkaiden määrä alla
 //int labyrintti[KORKEUS][LEVEYS] = {
 //    {1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 //    {1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,2,0,2,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,2,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,2,0,0,1,0,0,0,1,0,0,2,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1,1},
@@ -148,30 +143,9 @@ const int segmentSize = 1024;
 //    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1},
 //    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,4,1,1},
 //};
-
-//apuja: voit testata ratkaisujasi myös alla olevalla yksinkertaisemmalla labyrintilla 
-//#define KORKEUS 7
-//#define LEVEYS 7
-
-// this is how you read the labyrinth x and y
-//      0   1   2   3   ...    99
-//  99
-//  98
-//  97
-//  96
-//  ...
-//  0
-
-int labyrintti[KORKEUS][LEVEYS] = {
-    {1,3,1,1,1,1,1},
-    {1,0,1,0,1,0,4},
-    {1,0,1,0,1,0,1},
-    {1,2,0,2,0,2,1},
-    {1,0,1,0,1,0,1},
-    {1,0,1,0,1,0,1},
-    {1,1,1,1,1,1,1},
-};
-
+//apuja: voit testata ratkaisujasi myös alla olevalla yksinkertaisemmalla labyrintilla
+#define KORKEUS 7
+#define LEVEYS 7
 
 //karttasijainnin tallettamiseen käytettävä rakenne, luotaessa alustuu vasempaan alakulmaan
 //HUOM! ykoordinaatti on peilikuva taulukon rivi-indeksiin
@@ -227,7 +201,7 @@ struct Karttavirhe {
 //tämä on esittely aloitusalgoritmifunktiolle mitä siis kutsutaan oli kyseessä prosessi eli säietoteutus
 //tällä hetkellä palauttaa kyseisen rotan liikkujen määrän labyrintin selvittämiseksi
 //OPISKELIJA: yhtenä mielenkiintoisena haasteena voisi olla liikkujen määrän optimointi rottien yhteistyötä kehittämällä
-int aloitaRotta();
+//int aloitaRotta();
 
 //OPISKELIJA: lisää tarvittavat muut funktioesittelyt tähän niin koodin järjestykellä tiedostossa ei ole merkitystä
 
@@ -246,7 +220,7 @@ Sijainti etsiKartasta(int kohde){
                 kartalla.xkoord = x;
                 kartalla.ykoord = KORKEUS-1-y;
                 return kartalla;
-            }  
+            }
         }
     }
     return kartalla;
@@ -257,7 +231,7 @@ Sijainti findBegin(){
     Sijainti alkusijainti;
     alkusijainti = etsiKartasta(3);
     return alkusijainti;
-} 
+}
 
 //TÄRKEÄÄ: reitti on risteyspino - sen muutokset täytyy liikkua tiedonvälityksen mukana, siksi liikkuu viittaus siihen
 //OPISKELIJA: rotan liikkumislogiikkaan ei (välttämättä) tarvitse kajota, ainoastaan päätöksentekoon risteyksiin liittyen
@@ -269,7 +243,7 @@ Sijainti findBegin(){
 //tutkitaan mitä nykypaikan yläpuolella on, prevDir kertoo minkä suuntainen oli viimeisin kyseisen rotan liikku
 bool tutkiUp(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
     int yindex = KORKEUS-1-nykysijainti.ykoord-1;
-    if (yindex < 0) return false; //ulos kartalta - ei mahdollista 
+    if (yindex < 0) return false; //ulos kartalta - ei mahdollista
     if (labyrintti[yindex][nykysijainti.xkoord] == 1) return false; //labyrintin seinä
     //tulossa uuteen ristaukseen, siihen siirrytään aina silmukan lopuksi nykytoteutuksessa
     if (labyrintti[yindex][nykysijainti.xkoord] == 2 && prevDir != DOWN) {
@@ -290,7 +264,7 @@ bool tutkiUp(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
 //..alapuolella
 bool tutkiDown(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
     int yindex = KORKEUS-1-nykysijainti.ykoord+1;
-    if (yindex > KORKEUS-1) return false; //ulos kartalta - ei mahdollista 
+    if (yindex > KORKEUS-1) return false; //ulos kartalta - ei mahdollista
     if (labyrintti[yindex][nykysijainti.xkoord] == 1) return false;
     //tulossa uuteen ristaukseen
     if (labyrintti[yindex][nykysijainti.xkoord] == 2 && prevDir != UP){
@@ -355,7 +329,7 @@ bool tutkiRight(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
 //tämä funktio palauttaa aina seuraavan lähtösuunnan ilman lisäehtoja
 //OPISKELIJA: älä muuta tätä funktiota suoraan vaan tee omille mahdollisille lisäehdoille oma(t) funktio(t) loogisesti oikeisiin paikkoihin
 LiikkumisSuunta findNext(bool onkoRistaus, Sijainti nykysijainti, LiikkumisSuunta prevDir, auto& reitti){
-    if (!onkoRistaus) {        
+    if (!onkoRistaus) {
         if (tutkiLeft(nykysijainti, reitti, prevDir) && prevDir != RIGHT){
         return LEFT;
         }
@@ -417,8 +391,8 @@ Sijainti moveRight(Sijainti nykysijainti){
 //tutkittavana - attribuutti kertoo (jää muistiin risteyksestä) minne suuntaan risteyksestä nyt lähdettiinkään
 //palauttaa suunnan mihin risteyksestä lähdetään
 LiikkumisSuunta doRistaus(Sijainti risteyssijainti, LiikkumisSuunta prevDir, auto& reitti){
-    LiikkumisSuunta nextDir; 
-    nextDir = findNext(true, risteyssijainti, prevDir, reitti); 
+    LiikkumisSuunta nextDir;
+    nextDir = findNext(true, risteyssijainti, prevDir, reitti);
     //HUOM! päätös risteyksessä toimimisesta tehdään alla
     //OPISKELIJA: voit vaikuttaa päätöksentekoon, lisää oma toiminnallisuus omaan funktioonsa
     if (nextDir == LEFT) reitti.back().tutkittavana = LEFT;
@@ -486,7 +460,7 @@ int aloitaRotta(){
         //a)UMPIKUJASTA: (DEFAULT PALAUTETTU findNext() -> paluu edelliseen risteykseen
         //b)AIEMMIN PALATTIIN JO RISTEYKSEEN JONKA KAIKKI SUUNNAT tutkittu-attribuutti true: (DEFAULT PALAUTETTU doRistaus() -> poista risteys pinosta ja palaa edelliseen risteykseen
         case DEFAULT: //=paluu edelliseen risteykseen jossa käymättömiä reittejä
-        cout << "Dead-end at x:" << rotanSijainti.xkoord << ", y:" << rotanSijainti.ykoord << endl; 
+        cout << "Dead-end at x:" << rotanSijainti.xkoord << ", y:" << rotanSijainti.ykoord << endl;
         rotanSijainti.ykoord = reitti.back().kartalla.ykoord;
         rotanSijainti.xkoord = reitti.back().kartalla.xkoord;
         cout << "Returned to x:" << rotanSijainti.xkoord << ", y:" << rotanSijainti.ykoord << endl;
@@ -511,7 +485,7 @@ int aloitaRotta(){
             default:
             cout << "CRITICAL ERROR! THIS SHOULD NOT BE PRINTED!" << endl;
             break;
-        } 
+        }
         break;
     }
 //DEBUGGAUSAPUJA
@@ -521,26 +495,96 @@ int aloitaRotta(){
     liikkuCount++;
     //OPISKELIJA: päivitä rotan hengähtämistaukoa haluamallasi tavalla (se voi vaihdella eri rotilla)
     usleep(10);
-} // for //while    
+} // for //while
     //ohjelman lopuksi palautetaan liikkujen määrä rottakohtaisesti
     //OPISKELIJA: voisit muuttaa paluuarvon rakenteeksi jossa olisi liikkujen määrän lisäksi myös oikea reitti eli jäljelle jäänyt risteyspino, pystyt sitten käyttämään sitä prosesseissa tai säikeissä
     return liikkuCount;
 }
 
+//OPISKELIJA: muistele harjoituksista miten eri asiat määriteltiin
+//OPISKELIJA: tehtäväsi on sijoittaa itse labyrinttikin jaettuun muistialueeseen ja käyttää sitä sieltä
+//->eli:labyrintin käyttö globaalilta alueelta jaetun muistin käyttöön
+//vinkki: kannattaa määritellä pointteri nimeltä labyrintti kaksiuloitteiseen taulukkoon jolloin nykytoteutus toimii sellaisenaan
+//parent/main alustaa jaettun muistin (eli kirjoittaa sinne) nuo labyrintin alkiot
+//poista labyrintti kokonaan globaalilta alueelta, ohjelman pitäisi toimia
+//mieti harjoituksista opitun perusteella paljonko labyrintti vähintään tarvitsee jaettua muistia
+//tee kaikki ratkaisut niin että ohjelma toimii millä tahansa labyrintilla
+
+
+// this is how you read the labyrinth x and y
+//      0   1   2   3   ...    99
+//  99
+//  98
+//  97
+//  96
+//  ...
+//  0
+
+int labyrintti[KORKEUS][LEVEYS] = {
+    {1,3,1,1,1,1,1},
+    {1,0,1,0,1,0,4},
+    {1,0,1,0,1,0,1},
+    {1,2,0,2,0,2,1},
+    {1,0,1,0,1,0,1},
+    {1,0,1,0,1,0,1},
+    {1,1,1,1,1,1,1},
+};
+
+// args of shared memory segment
+const char* SEM_NAME = "/dummySem";
+int segmentId;
+const int segmentSize = 1024;
+
 //OPISKELIJA: nykyinen main on näin yksinkertainen, tästä pitää muokata se rinnakkaisuuden pohja
 int main(){
-    // creation of shared memory
+    // creation of shared memory space (ADDRESS). Think this as something like 0x000abc in the memory. We can only save ONE THING at time here. If we want to save more things we create new shared memory addresses
     segmentId = shmget(IPC_PRIVATE, segmentSize, S_IRUSR | S_IWUSR);
-    cout << "Created memory space" << endl;
+    cout << "Created memory space. Segment id is: " << segmentId << endl;
+    // memory pointer
+    int* memoryPointer[KORKEUS][LEVEYS] {nullptr};
+    memoryPointer = (int(*)[LEVEYS]) shmat(segmentId, NULL, 0); // Pointer attaches to shared memory space. Attaches to whatever avaible address space
+    int lukuParent = 50; // testing value
+    // if (memoryPointer) *memoryPointer = lukuParent;  // value of memorypointer is se to the value of lukuparent
+    if (memoryPointer) *memoryPointer = lukuParent;  // value of memorypointer is se to the value of lukuparent
 
-    aloitaRotta();
+    // semaphore
+    sem_unlink(SEM_NAME); // removes semaphove with the name if it already exists
+    sem_t* sem = sem_open(SEM_NAME, O_CREAT | O_EXCL, 0666, 1); // creates a semaphore into the space we created before
+    if (sem == SEM_FAILED) { perror("sem_open"); return 1; }
+    // creating child process
+    // fork is a function that creates a child process from the parent process (the parent process is this executable that we are running here)
+    pid_t childpid = fork();
+    if (childpid == -1) { perror("fork"); return 1; }
+
+    if (childpid == 0) {
+        //int (*myPointer)[LEVEYS] = labyrintti;
+        aloitaRotta();
+        int* childPointer {nullptr};
+        childPointer = (int*) shmat(segmentId, NULL, 0); // child pointer that points to the address in the mainprocess
+    } else {
+        // Vanhempi odottaa että lapsi on valmis, alla odotetaan mitä tahansa valmistuvaa lasta
+        wait(nullptr);
+        std::cout << "Vanhempi: luettu arvo = " << *memoryPointer << std::endl;
+    }
+
+    //aloitaRotta();
     //tämän tulee kertoa että kaikki rotat ovat päässeet ulos labyrintista
     //viimeinen jäädytetty kuva sijaintikartasta olisi hyvä olla todistamassa sitä
     cout << "All rats out!" << endl;
 
+    // Siivotaan sameforit, vain vanhempi elossa täällä
+    sem_close(sem); // ei voi käyttää tämän jälkeen
+    sem_unlink(SEM_NAME); // nimi ei yhdisty enää semaforeihin
+
+    // removing shared memory pointer
+    shmdt(memoryPointer);
+
     // removal of shared memory
     shmctl(segmentId, IPC_RMID, nullptr);
-    cout << "Removal of the memory space" << endl;
+    cout << "Removal of the memory space." << endl;
+
+    // to check that shared memory segment that we created is removed run './a.out && ipcs -m'
+    // this shows the ipcs that are currently working AFTER our script has run
 
     return 0;
 }
