@@ -541,11 +541,17 @@ int main(){
     segmentId = shmget(IPC_PRIVATE, segmentSize, S_IRUSR | S_IWUSR);
     cout << "Created memory space. Segment id is: " << segmentId << endl;
     // memory pointer
-    int* memoryPointer[KORKEUS][LEVEYS] {nullptr};
-    memoryPointer = (int(*)[LEVEYS]) shmat(segmentId, NULL, 0); // Pointer attaches to shared memory space. Attaches to whatever avaible address space
+    int (*memoryPointer)[LEVEYS] {nullptr}; // pointer to array of ints
+    memoryPointer = (int(*)[LEVEYS]) shmat(segmentId, NULL, 0); // Pointer attaches to shared memory space. We define that this pointer uses this (NULL meaning whatever available address) address. ex 0x00abc
     int lukuParent = 50; // testing value
     // if (memoryPointer) *memoryPointer = lukuParent;  // value of memorypointer is se to the value of lukuparent
-    if (memoryPointer) *memoryPointer = lukuParent;  // value of memorypointer is se to the value of lukuparent
+
+    // putting labyrintti into the shared memory space. We are putting a 2d array into there
+    for (int i = 0; i < LEVEYS; i++) {
+        for (int j = 0; j < KORKEUS; j++) {
+            memoryPointer[i][j] = labyrintti[i][j];
+        }
+    }
 
     // semaphore
     sem_unlink(SEM_NAME); // removes semaphove with the name if it already exists
