@@ -144,8 +144,6 @@ using namespace std;
 //    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,4,1,1},
 //};
 //apuja: voit testata ratkaisujasi myös alla olevalla yksinkertaisemmalla labyrintilla
-#define KORKEUS 7
-#define LEVEYS 7
 
 // this is how you read the labyrinth x and y
 //      0   1   2   3   ...    99
@@ -156,6 +154,8 @@ using namespace std;
 //  ...
 //  0
 
+#define KORKEUS 7
+#define LEVEYS 7
 int labyrintti[KORKEUS][LEVEYS] = {
     {1,3,1,1,1,1,1},
     {1,0,1,0,1,0,4},
@@ -231,7 +231,7 @@ struct Karttavirhe {
 //VINKKI: määrittele pointteri niin että olemassa olevissa algoritmeissa oleva koodi toimii sellaisenaan
 
 //etsii kartasta jotain spesifistä, palauttaa sen koordinaatit
-Sijainti etsiKartasta(int kohde){
+Sijainti etsiKartasta(int kohde, int (*labyrintti)[LEVEYS]){
     Sijainti kartalla;
     for (int y = 0; y<KORKEUS ; y++) {
         for (int x = 0; x<LEVEYS ; x++){
@@ -246,9 +246,9 @@ Sijainti etsiKartasta(int kohde){
 }
 
 //etsitään labyrintin aloituskohta, merkitty 3:lla
-Sijainti findBegin(){
+Sijainti findBegin(int (*labyrintti)[LEVEYS]){
     Sijainti alkusijainti;
-    alkusijainti = etsiKartasta(3);
+    alkusijainti = etsiKartasta(3, labyrintti);
     return alkusijainti;
 }
 
@@ -260,7 +260,7 @@ Sijainti findBegin(){
 //OPISKLEIJA: käytä siis labyrinttia jaetusta muistista ja tee tarvittaessa siihen liittyvät muutokset
 
 //tutkitaan mitä nykypaikan yläpuolella on, prevDir kertoo minkä suuntainen oli viimeisin kyseisen rotan liikku
-bool tutkiUp(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
+bool tutkiUp(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir, int (*labyrintti)[LEVEYS]){
     int yindex = KORKEUS-1-nykysijainti.ykoord-1;
     if (yindex < 0) return false; //ulos kartalta - ei mahdollista
     if (labyrintti[yindex][nykysijainti.xkoord] == 1) return false; //labyrintin seinä
@@ -281,7 +281,7 @@ bool tutkiUp(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
     return true;
 }
 //..alapuolella
-bool tutkiDown(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
+bool tutkiDown(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir, int (*labyrintti)[LEVEYS]){
     int yindex = KORKEUS-1-nykysijainti.ykoord+1;
     if (yindex > KORKEUS-1) return false; //ulos kartalta - ei mahdollista
     if (labyrintti[yindex][nykysijainti.xkoord] == 1) return false;
@@ -302,7 +302,7 @@ bool tutkiDown(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
 }
 
 //..vasemmalla
-bool tutkiLeft(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
+bool tutkiLeft(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir, int (*labyrintti)[LEVEYS]){
     int yindex = KORKEUS-1-nykysijainti.ykoord;
     int xindex = nykysijainti.xkoord-1;
     if (xindex < 0) return false; //ulos kartalta - ei mahdollista
@@ -324,7 +324,7 @@ bool tutkiLeft(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
 }
 
 //..oikealla
-bool tutkiRight(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
+bool tutkiRight(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir, int (*labyrintti)[LEVEYS]){
     int yindex = KORKEUS-1-nykysijainti.ykoord;
     int xindex = nykysijainti.xkoord+1;
     if (xindex > LEVEYS) return false; //ulos kartalta - ei mahdollista
@@ -347,33 +347,33 @@ bool tutkiRight(Sijainti nykysijainti, auto& reitti, LiikkumisSuunta prevDir){
 
 //tämä funktio palauttaa aina seuraavan lähtösuunnan ilman lisäehtoja
 //OPISKELIJA: älä muuta tätä funktiota suoraan vaan tee omille mahdollisille lisäehdoille oma(t) funktio(t) loogisesti oikeisiin paikkoihin
-LiikkumisSuunta findNext(bool onkoRistaus, Sijainti nykysijainti, LiikkumisSuunta prevDir, auto& reitti){
+LiikkumisSuunta findNext(bool onkoRistaus, Sijainti nykysijainti, LiikkumisSuunta prevDir, auto& reitti, int (*labyrintti)[LEVEYS]){
     if (!onkoRistaus) {
-        if (tutkiLeft(nykysijainti, reitti, prevDir) && prevDir != RIGHT){
+        if (tutkiLeft(nykysijainti, reitti, prevDir, labyrintti) && prevDir != RIGHT){
         return LEFT;
         }
-        if (tutkiUp(nykysijainti, reitti, prevDir) && prevDir != DOWN){
+        if (tutkiUp(nykysijainti, reitti, prevDir, labyrintti) && prevDir != DOWN){
         return UP;
         }
-        if (tutkiDown(nykysijainti, reitti, prevDir) && prevDir != UP){
+        if (tutkiDown(nykysijainti, reitti, prevDir, labyrintti) && prevDir != UP){
         return DOWN;
         }
-        if (tutkiRight(nykysijainti, reitti, prevDir) && prevDir != LEFT){
+        if (tutkiRight(nykysijainti, reitti, prevDir, labyrintti) && prevDir != LEFT){
         return RIGHT;
         }
         return DEFAULT; //UMPIKUJA - palaa viimeisimpään risteykseen returnin jälkeen
     }
     else if (onkoRistaus) {
-        if (tutkiLeft(nykysijainti, reitti, prevDir) && reitti.back().tutkittavana != LEFT && !reitti.back().left.tutkittu){
+        if (tutkiLeft(nykysijainti, reitti, prevDir, labyrintti) && reitti.back().tutkittavana != LEFT && !reitti.back().left.tutkittu){
         return LEFT;
         }
-        if (tutkiUp(nykysijainti, reitti, prevDir) && reitti.back().tutkittavana != UP && !reitti.back().up.tutkittu){
+        if (tutkiUp(nykysijainti, reitti, prevDir, labyrintti) && reitti.back().tutkittavana != UP && !reitti.back().up.tutkittu){
         return UP;
         }
-        if (tutkiDown(nykysijainti, reitti, prevDir) && reitti.back().tutkittavana != DOWN && !reitti.back().down.tutkittu){
+        if (tutkiDown(nykysijainti, reitti, prevDir, labyrintti) && reitti.back().tutkittavana != DOWN && !reitti.back().down.tutkittu){
         return DOWN;
         }
-        if (tutkiRight(nykysijainti, reitti, prevDir) && reitti.back().tutkittavana != RIGHT && !reitti.back().right.tutkittu){
+        if (tutkiRight(nykysijainti, reitti, prevDir, labyrintti) && reitti.back().tutkittavana != RIGHT && !reitti.back().right.tutkittu){
         return RIGHT;
         }
         return DEFAULT; //palatun ristauksen kaikki suunnat käyty,return jälkeen risteyksen voi poistaa pinosta ja palata sitä edelliseen risteykseen
@@ -409,9 +409,9 @@ Sijainti moveRight(Sijainti nykysijainti){
 //pop_back() poistaa viimeisimmän lisätyn alkion (=pinon päältä)
 //tutkittavana - attribuutti kertoo (jää muistiin risteyksestä) minne suuntaan risteyksestä nyt lähdettiinkään
 //palauttaa suunnan mihin risteyksestä lähdetään
-LiikkumisSuunta doRistaus(Sijainti risteyssijainti, LiikkumisSuunta prevDir, auto& reitti){
+LiikkumisSuunta doRistaus(Sijainti risteyssijainti, LiikkumisSuunta prevDir, auto& reitti, int (*labyrintti)[LEVEYS]){
     LiikkumisSuunta nextDir;
-    nextDir = findNext(true, risteyssijainti, prevDir, reitti);
+    nextDir = findNext(true, risteyssijainti, prevDir, reitti, labyrintti);
     //HUOM! päätös risteyksessä toimimisesta tehdään alla
     //OPISKELIJA: voit vaikuttaa päätöksentekoon, lisää oma toiminnallisuus omaan funktioonsa
     if (nextDir == LEFT) reitti.back().tutkittavana = LEFT;
@@ -435,10 +435,10 @@ LiikkumisSuunta doRistaus(Sijainti risteyssijainti, LiikkumisSuunta prevDir, aut
 //parametrina tässä siis voi/pitää antaa esimerkiksi että ollaanko prosessina vai threadinä liikkeellä
 //kuljeta parametria/parametreja tarvittavissa paikoissa ohjelmassa
 //ohjelman lopussa reitti vektorissa (käsitellään pinona) on oikean reitin risteykset ainoastaan
-int aloitaRotta(__pid_t id){
+int aloitaRotta(__pid_t id, int (*labyrintti)[LEVEYS]){
     int liikkuCount=0;
     vector<Ristaus> reitti; //pinona käytettävä rotan kulkema reitti (pinossa kuljetut risteykset)
-    Sijainti rotanSijainti = findBegin(); //hae labyrintin alku
+    Sijainti rotanSijainti = findBegin(labyrintti); //hae labyrintin alku
     LiikkumisSuunta prevDir {DEFAULT}; //edellinen suunta:jottei kuljeta edestakaisin vahingossa
     LiikkumisSuunta nextDir {DEFAULT}; //seuraava suunta
     //pyöri labyrintissa kunnes ulostulo on löytynyt
@@ -451,10 +451,10 @@ int aloitaRotta(__pid_t id){
         //risteykset on labyrinttiin merkitty 2:lla ohjelmoinnin helpottamiseksi
         //risteyksen tutkimiselle on oma koodi alla
         if (labyrintti[KORKEUS-1-rotanSijainti.ykoord][rotanSijainti.xkoord] == 2){
-            nextDir = doRistaus(rotanSijainti, prevDir, reitti);
+            nextDir = doRistaus(rotanSijainti, prevDir, reitti, labyrintti);
         }
         //muuten tämä, eli "muu kuin risteys" koodi
-        else nextDir = findNext(false /* ei risteys */, rotanSijainti, prevDir, reitti);
+        else nextDir = findNext(false /* ei risteys */, rotanSijainti, prevDir, reitti, labyrintti);
         //huom! nykyimplementaatiossa jos vuoron alussa (eli yläpuolisissa kutsuissa) liikkuminen on todettu mahdolliseksi se myös tullaan tekemään, muuta tätä tarvittaessa
         //huom! jos on valittu risteykseenmeno niin ristaus on jo lisätty ristauspinoon tässä vaiheessa
         //huom! päätökset on jo tehty, tässä on vain päätösten toimeenpano
@@ -539,15 +539,14 @@ int childHandler(int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId){
     if (childpid == -1) { perror("fork"); return 1; }
 
     if (childpid == 0) {
-        //int (*myPointer)[LEVEYS] = labyrintti;
-        //aloitaRotta();
-        int* childPointer {nullptr};
-        childPointer = (int*) shmat(segmentId, NULL, 0); // child pointer that points to the address in the mainprocess
+        // child pointer that points to the address in the mainprocess meaning the labyrinth
         std::cout << "child process id: " << getpid() << endl;
+        int (*childPointer)[LEVEYS] = (int (*)[LEVEYS]) shmat(segmentId, NULL, 0);
         // esimerkkinä semaforin käyttö
         if (childPointer) {
             sem_wait(sem); //jos semafori vapaa - voit edetä, muuten odota vapautumista
-            aloitaRotta(getpid());
+            aloitaRotta(getpid(), childPointer);
+            sleep(1);
             sem_post(sem); //siganloi että semafori vapaa
             std::cout << "freed this id of tasks: " << getpid() << endl;
             std::cout << "Lapsi: kirjoitettu arvo = " << childPointer << std::endl;
@@ -558,7 +557,6 @@ int childHandler(int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId){
         //wait(nullptr);
         std::cout << "Vanhempi: luettu arvo = " << *memoryPointer << std::endl;
     }
-
 
     return 0;
 }
@@ -572,11 +570,10 @@ int main(){
     int (*memoryPointer)[LEVEYS] {nullptr}; // pointer to array of ints
     memoryPointer = (int(*)[LEVEYS]) shmat(segmentId, NULL, 0); // Pointer attaches to shared memory space. We define that this pointer uses this (NULL meaning whatever available address) address. ex 0x00abc
     int lukuParent = 50; // testing value
-    // if (memoryPointer) *memoryPointer = lukuParent;  // value of memorypointer is se to the value of lukuparent
 
     // putting labyrintti into the shared memory space. We are putting a 2d array into there
-    for (int i = 0; i < LEVEYS; i++) {
-        for (int j = 0; j < KORKEUS; j++) {
+    for (int i = 0; i < KORKEUS; i++) {
+        for (int j = 0; j < LEVEYS; j++) {
             memoryPointer[i][j] = labyrintti[i][j];
         }
     }
@@ -585,16 +582,22 @@ int main(){
     sem_unlink(SEM_NAME); // removes semaphove with the name if it already exists
     sem_t* sem = sem_open(SEM_NAME, O_CREAT | O_EXCL, 0666, 1); // creates a semaphore into the space we created before
     if (sem == SEM_FAILED) { perror("sem_open"); return 1; }
+
+    // asking if user wants processes or threads
+    int answer;
+    cout << "Use process [0] or threads [1]: ";
+    cin >> answer;
+    // asking about how many processes/threads to create
+    cout << "How many processes/threads do you want: ";
+    cin >> answer;
     // creating child process
     // fork is a function that creates a child process from the parent process (the parent process is this executable that we are running here)
-    childHandler(memoryPointer, sem, segmentId);
-    childHandler(memoryPointer, sem, segmentId);
-    childHandler(memoryPointer, sem, segmentId);
-    childHandler(memoryPointer, sem, segmentId);
-
+    for (int i = 0; i < answer; i++){
+        childHandler(memoryPointer, sem, segmentId);
+    }
 
     // Vanhempi odottaa että lapsi on valmis, alla odotetaan mitä tahansa valmistuvaa lasta
-    for (int i = 0; i < 4; ++i){
+    for (int i = 0; i < answer; ++i){
         wait(nullptr);
     }
 
