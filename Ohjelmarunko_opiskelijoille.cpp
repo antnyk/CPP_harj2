@@ -147,6 +147,25 @@ using namespace std;
 #define KORKEUS 7
 #define LEVEYS 7
 
+// this is how you read the labyrinth x and y
+//      0   1   2   3   ...    99
+//  99
+//  98
+//  97
+//  96
+//  ...
+//  0
+
+int labyrintti[KORKEUS][LEVEYS] = {
+    {1,3,1,1,1,1,1},
+    {1,0,1,0,1,0,4},
+    {1,0,1,0,1,0,1},
+    {1,2,0,2,0,2,1},
+    {1,0,1,0,1,0,1},
+    {1,0,1,0,1,0,1},
+    {1,1,1,1,1,1,1},
+};
+
 //karttasijainnin tallettamiseen käytettävä rakenne, luotaessa alustuu vasempaan alakulmaan
 //HUOM! ykoordinaatti on peilikuva taulukon rivi-indeksiin
 //PasiM: TODO, voisi yksinkertaistaa että ykoord olisi sama kuin rivi-indeksi
@@ -416,7 +435,7 @@ LiikkumisSuunta doRistaus(Sijainti risteyssijainti, LiikkumisSuunta prevDir, aut
 //parametrina tässä siis voi/pitää antaa esimerkiksi että ollaanko prosessina vai threadinä liikkeellä
 //kuljeta parametria/parametreja tarvittavissa paikoissa ohjelmassa
 //ohjelman lopussa reitti vektorissa (käsitellään pinona) on oikean reitin risteykset ainoastaan
-int aloitaRotta(){
+int aloitaRotta(__pid_t id){
     int liikkuCount=0;
     vector<Ristaus> reitti; //pinona käytettävä rotan kulkema reitti (pinossa kuljetut risteykset)
     Sijainti rotanSijainti = findBegin(); //hae labyrintin alku
@@ -460,10 +479,10 @@ int aloitaRotta(){
         //a)UMPIKUJASTA: (DEFAULT PALAUTETTU findNext() -> paluu edelliseen risteykseen
         //b)AIEMMIN PALATTIIN JO RISTEYKSEEN JONKA KAIKKI SUUNNAT tutkittu-attribuutti true: (DEFAULT PALAUTETTU doRistaus() -> poista risteys pinosta ja palaa edelliseen risteykseen
         case DEFAULT: //=paluu edelliseen risteykseen jossa käymättömiä reittejä
-        cout << "Dead-end at x:" << rotanSijainti.xkoord << ", y:" << rotanSijainti.ykoord << endl;
+        cout << id << " Dead-end at x: " << rotanSijainti.xkoord << ", y:" << rotanSijainti.ykoord << endl;
         rotanSijainti.ykoord = reitti.back().kartalla.ykoord;
         rotanSijainti.xkoord = reitti.back().kartalla.xkoord;
-        cout << "Returned to x:" << rotanSijainti.xkoord << ", y:" << rotanSijainti.ykoord << endl;
+        cout << id << " Returned to x: " << rotanSijainti.xkoord << ", y:" << rotanSijainti.ykoord << endl;
             switch (reitti.back().tutkittavana){
             case UP:
                 reitti.back().up.tutkittu = true;
@@ -510,36 +529,45 @@ int aloitaRotta(){
 //mieti harjoituksista opitun perusteella paljonko labyrintti vähintään tarvitsee jaettua muistia
 //tee kaikki ratkaisut niin että ohjelma toimii millä tahansa labyrintilla
 
-
-// this is how you read the labyrinth x and y
-//      0   1   2   3   ...    99
-//  99
-//  98
-//  97
-//  96
-//  ...
-//  0
-
-int labyrintti[KORKEUS][LEVEYS] = {
-    {1,3,1,1,1,1,1},
-    {1,0,1,0,1,0,4},
-    {1,0,1,0,1,0,1},
-    {1,2,0,2,0,2,1},
-    {1,0,1,0,1,0,1},
-    {1,0,1,0,1,0,1},
-    {1,1,1,1,1,1,1},
-};
-
 // args of shared memory segment
 const char* SEM_NAME = "/dummySem";
 int segmentId;
 const int segmentSize = 1024;
 
+int childHandler(int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId){
+    pid_t childpid = fork();
+    if (childpid == -1) { perror("fork"); return 1; }
+
+    if (childpid == 0) {
+        //int (*myPointer)[LEVEYS] = labyrintti;
+        //aloitaRotta();
+        int* childPointer {nullptr};
+        childPointer = (int*) shmat(segmentId, NULL, 0); // child pointer that points to the address in the mainprocess
+        std::cout << "child process id: " << getpid() << endl;
+        // esimerkkinä semaforin käyttö
+        if (childPointer) {
+            sem_wait(sem); //jos semafori vapaa - voit edetä, muuten odota vapautumista
+            aloitaRotta(getpid());
+            sem_post(sem); //siganloi että semafori vapaa
+            std::cout << "freed this id of tasks: " << getpid() << endl;
+            std::cout << "Lapsi: kirjoitettu arvo = " << childPointer << std::endl;
+        }
+        _exit(0); //lapsi poistuu
+    } else {
+        // Vanhempi odottaa että lapsi on valmis, alla odotetaan mitä tahansa valmistuvaa lasta
+        //wait(nullptr);
+        std::cout << "Vanhempi: luettu arvo = " << *memoryPointer << std::endl;
+    }
+
+
+    return 0;
+}
+
 //OPISKELIJA: nykyinen main on näin yksinkertainen, tästä pitää muokata se rinnakkaisuuden pohja
 int main(){
     // creation of shared memory space (ADDRESS). Think this as something like 0x000abc in the memory. We can only save ONE THING at time here. If we want to save more things we create new shared memory addresses
     segmentId = shmget(IPC_PRIVATE, segmentSize, S_IRUSR | S_IWUSR);
-    cout << "Created memory space. Segment id is: " << segmentId << endl;
+    std::cout << "Created memory space. Segment id is: " << segmentId << endl;
     // memory pointer
     int (*memoryPointer)[LEVEYS] {nullptr}; // pointer to array of ints
     memoryPointer = (int(*)[LEVEYS]) shmat(segmentId, NULL, 0); // Pointer attaches to shared memory space. We define that this pointer uses this (NULL meaning whatever available address) address. ex 0x00abc
@@ -559,19 +587,41 @@ int main(){
     if (sem == SEM_FAILED) { perror("sem_open"); return 1; }
     // creating child process
     // fork is a function that creates a child process from the parent process (the parent process is this executable that we are running here)
-    pid_t childpid = fork();
-    if (childpid == -1) { perror("fork"); return 1; }
+    childHandler(memoryPointer, sem, segmentId);
+    childHandler(memoryPointer, sem, segmentId);
+    childHandler(memoryPointer, sem, segmentId);
+    childHandler(memoryPointer, sem, segmentId);
 
-    if (childpid == 0) {
-        //int (*myPointer)[LEVEYS] = labyrintti;
-        aloitaRotta();
-        int* childPointer {nullptr};
-        childPointer = (int*) shmat(segmentId, NULL, 0); // child pointer that points to the address in the mainprocess
-    } else {
-        // Vanhempi odottaa että lapsi on valmis, alla odotetaan mitä tahansa valmistuvaa lasta
+
+    // Vanhempi odottaa että lapsi on valmis, alla odotetaan mitä tahansa valmistuvaa lasta
+    for (int i = 0; i < 4; ++i){
         wait(nullptr);
-        std::cout << "Vanhempi: luettu arvo = " << *memoryPointer << std::endl;
     }
+
+    //pid_t childpid = fork();
+    //if (childpid == -1) { perror("fork"); return 1; }
+
+    //if (childpid == 0) {
+    //    //int (*myPointer)[LEVEYS] = labyrintti;
+    //    //aloitaRotta();
+    //    int* childPointer {nullptr};
+    //    childPointer = (int*) shmat(segmentId, NULL, 0); // child pointer that points to the address in the mainprocess
+    //    // esimerkkinä semaforin käyttö
+    //    if (childPointer) {
+    //        sem_wait(sem); //jos semafori vapaa - voit edetä, muuten odota vapautumista
+    //        //*childPointer += 50; //turavalista päivittää
+    //        aloitaRotta();
+    //        sem_post(sem); //siganloi että semafori vapaa
+    //        std::cout << "Lapsi: kirjoitettu arvo = " << *childPointer << std::endl;
+    //    }
+    //    return 0; //lapsi poistuu
+    //} else {
+    //    // Vanhempi odottaa että lapsi on valmis, alla odotetaan mitä tahansa valmistuvaa lasta
+    //    wait(nullptr);
+    //    std::cout << "Vanhempi: luettu arvo = " << *memoryPointer << std::endl;
+    //}
+
+
 
     //aloitaRotta();
     //tämän tulee kertoa että kaikki rotat ovat päässeet ulos labyrintista
