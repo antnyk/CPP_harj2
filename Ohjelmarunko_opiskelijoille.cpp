@@ -156,9 +156,9 @@ using namespace std;
 
 #define KORKEUS 7
 #define LEVEYS 7
-int labyrintti[KORKEUS][LEVEYS] = {
-    {1,3,1,1,1,1,1},
-    {1,0,1,0,1,0,4},
+int labyrinttimme[KORKEUS][LEVEYS] = {
+    {1,3,1,4,1,1,1},
+    {1,0,1,0,1,0,1},
     {1,0,1,0,1,0,1},
     {1,2,0,2,0,2,1},
     {1,0,1,0,1,0,1},
@@ -443,6 +443,7 @@ int aloitaRotta(__pid_t id, int (*labyrintti)[LEVEYS]){
     LiikkumisSuunta nextDir {DEFAULT}; //seuraava suunta
     //pyöri labyrintissa kunnes ulostulo on löytynyt
     while (labyrintti[KORKEUS-1-rotanSijainti.ykoord][rotanSijainti.xkoord] != 4) { //ulospääsyn löytymisehto
+        //sleep(1);
 //DEBUGAUSAPUJA..getpid() palauttaa ajajan
 //        pid_t prosessi = getpid();
 //        cout << "Olen prosessi: " << prosessi << endl;
@@ -538,7 +539,7 @@ int childHandler(int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId){
     pid_t childpid = fork();
     if (childpid == -1) { perror("fork"); return 1; }
 
-    if (childpid == 0) {
+    if (childpid == 0 || childpid == 0) {
         // child pointer that points to the address in the mainprocess meaning the labyrinth
         std::cout << "child process id: " << getpid() << endl;
         int (*childPointer)[LEVEYS] = (int (*)[LEVEYS]) shmat(segmentId, NULL, 0);
@@ -546,9 +547,8 @@ int childHandler(int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId){
         if (childPointer) {
             sem_wait(sem); //jos semafori vapaa - voit edetä, muuten odota vapautumista
             aloitaRotta(getpid(), childPointer);
-            sleep(1);
             sem_post(sem); //siganloi että semafori vapaa
-            std::cout << "freed this id of tasks: " << getpid() << endl;
+            std::cout << "freed this child of tasks (id): " << getpid() << endl;
             std::cout << "Lapsi: kirjoitettu arvo = " << childPointer << std::endl;
         }
         _exit(0); //lapsi poistuu
@@ -574,7 +574,7 @@ int main(){
     // putting labyrintti into the shared memory space. We are putting a 2d array into there
     for (int i = 0; i < KORKEUS; i++) {
         for (int j = 0; j < LEVEYS; j++) {
-            memoryPointer[i][j] = labyrintti[i][j];
+            memoryPointer[i][j] = labyrinttimme[i][j];
         }
     }
 
@@ -582,11 +582,13 @@ int main(){
     sem_unlink(SEM_NAME); // removes semaphove with the name if it already exists
     sem_t* sem = sem_open(SEM_NAME, O_CREAT | O_EXCL, 0666, 1); // creates a semaphore into the space we created before
     if (sem == SEM_FAILED) { perror("sem_open"); return 1; }
+    // we limit how many child processes can run
+    sem_init(sem, 1, 3);
 
     // asking if user wants processes or threads
     int answer;
-    cout << "Use process [0] or threads [1]: ";
-    cin >> answer;
+    //cout << "Use process [0] or threads [1]: ";
+    //cin >> answer;
     // asking about how many processes/threads to create
     cout << "How many processes/threads do you want: ";
     cin >> answer;
@@ -601,32 +603,6 @@ int main(){
         wait(nullptr);
     }
 
-    //pid_t childpid = fork();
-    //if (childpid == -1) { perror("fork"); return 1; }
-
-    //if (childpid == 0) {
-    //    //int (*myPointer)[LEVEYS] = labyrintti;
-    //    //aloitaRotta();
-    //    int* childPointer {nullptr};
-    //    childPointer = (int*) shmat(segmentId, NULL, 0); // child pointer that points to the address in the mainprocess
-    //    // esimerkkinä semaforin käyttö
-    //    if (childPointer) {
-    //        sem_wait(sem); //jos semafori vapaa - voit edetä, muuten odota vapautumista
-    //        //*childPointer += 50; //turavalista päivittää
-    //        aloitaRotta();
-    //        sem_post(sem); //siganloi että semafori vapaa
-    //        std::cout << "Lapsi: kirjoitettu arvo = " << *childPointer << std::endl;
-    //    }
-    //    return 0; //lapsi poistuu
-    //} else {
-    //    // Vanhempi odottaa että lapsi on valmis, alla odotetaan mitä tahansa valmistuvaa lasta
-    //    wait(nullptr);
-    //    std::cout << "Vanhempi: luettu arvo = " << *memoryPointer << std::endl;
-    //}
-
-
-
-    //aloitaRotta();
     //tämän tulee kertoa että kaikki rotat ovat päässeet ulos labyrintista
     //viimeinen jäädytetty kuva sijaintikartasta olisi hyvä olla todistamassa sitä
     cout << "All rats out!" << endl;
@@ -644,6 +620,7 @@ int main(){
 
     // to check that shared memory segment that we created is removed run './a.out && ipcs -m'
     // this shows the ipcs that are currently working AFTER our script has run
+    // to check currently running process only on our main.out use 'ps -ef | grep main.out'
 
     return 0;
 }
