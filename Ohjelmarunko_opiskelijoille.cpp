@@ -535,37 +535,62 @@ const char* SEM_NAME = "/dummySem";
 int segmentId;
 const int segmentSize = 1024;
 
-int childHandler(int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId){
+int childProcessHandler(int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId){
     pid_t childpid = fork();
     if (childpid == -1) { perror("fork"); return 1; }
 
     if (childpid == 0 || childpid == 0) {
         // child pointer that points to the address in the mainprocess meaning the labyrinth
-        std::cout << "child process id: " << getpid() << endl;
+        cout << "child process id: " << getpid() << endl;
         int (*childPointer)[LEVEYS] = (int (*)[LEVEYS]) shmat(segmentId, NULL, 0);
         // esimerkkinä semaforin käyttö
         if (childPointer) {
             sem_wait(sem); //jos semafori vapaa - voit edetä, muuten odota vapautumista
             aloitaRotta(getpid(), childPointer);
             sem_post(sem); //siganloi että semafori vapaa
-            std::cout << "freed this child of tasks (id): " << getpid() << endl;
-            std::cout << "Lapsi: kirjoitettu arvo = " << childPointer << std::endl;
+            cout << "freed this child of tasks (id): " << getpid() << endl;
+            cout << "Lapsi: kirjoitettu arvo = " << childPointer << endl;
         }
         _exit(0); //lapsi poistuu
     } else {
         // Vanhempi odottaa että lapsi on valmis, alla odotetaan mitä tahansa valmistuvaa lasta
         //wait(nullptr);
-        std::cout << "Vanhempi: luettu arvo = " << *memoryPointer << std::endl;
+        cout << "Vanhempi: luettu arvo = " << *memoryPointer << endl;
     }
 
     return 0;
 }
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
+void* thread_function(void *args){
+   printf("Thread number %ld\n", pthread_self());
+   pthread_mutex_lock( &mutex );
+   cout << "thread did its job" << endl;
+   pthread_mutex_unlock( &mutex );
+
+   return nullptr;
+}
+
+//int childThreadHandler(__pid_t parentProcessId, int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId, int threadAmount){
+//    int (*childPointer)[LEVEYS] = (int (*)[LEVEYS]) shmat(segmentId, NULL, 0);
+//
+//    pthread_t threadId[threadAmount];
+//
+//    // creating the threads
+//    for (int i = 0; i < threadAmount; i++){
+//        pthread_create(&threadId[i], NULL, thread_function, NULL);
+//    }
+//
+//    return 0;
+//}
+
 //OPISKELIJA: nykyinen main on näin yksinkertainen, tästä pitää muokata se rinnakkaisuuden pohja
 int main(){
     // creation of shared memory space (ADDRESS). Think this as something like 0x000abc in the memory. We can only save ONE THING at time here. If we want to save more things we create new shared memory addresses
     segmentId = shmget(IPC_PRIVATE, segmentSize, S_IRUSR | S_IWUSR);
-    std::cout << "Created memory space. Segment id is: " << segmentId << endl;
+    cout << "Created memory space. Segment id is: " << segmentId << endl;
     // memory pointer
     int (*memoryPointer)[LEVEYS] {nullptr}; // pointer to array of ints
     memoryPointer = (int(*)[LEVEYS]) shmat(segmentId, NULL, 0); // Pointer attaches to shared memory space. We define that this pointer uses this (NULL meaning whatever available address) address. ex 0x00abc
@@ -587,20 +612,45 @@ int main(){
 
     // asking if user wants processes or threads
     int answer;
-    //cout << "Use process [0] or threads [1]: ";
-    //cin >> answer;
-    // asking about how many processes/threads to create
-    cout << "How many processes/threads do you want: ";
+    cout << "Use process [0] or threads [1]: ";
     cin >> answer;
-    // creating child process
-    // fork is a function that creates a child process from the parent process (the parent process is this executable that we are running here)
-    for (int i = 0; i < answer; i++){
-        childHandler(memoryPointer, sem, segmentId);
-    }
+    switch (answer) {
+        case 0:
+            // asking about how many processes to create
+            int processAmount;
+            cout << "How many processes do you want: ";
+            cin >> processAmount;
+            // creating child process
+            // fork is a function that creates a child process from the parent process (the parent process is this executable that we are running here)
+            for (int i = 0; i < processAmount; i++){
+                childProcessHandler(memoryPointer, sem, segmentId);
+            }
+            // Parent process waits that the child process is finished
+            for (int i = 0; i < processAmount; ++i){
+                wait(nullptr);
+            }
+            break;
+        case 1: {
+            // asking about how many threads to create
+            int threadAmount;
+            cout << "How many threads do you want: ";
+            cin >> threadAmount;
+            vector<pthread_t> threadId(threadAmount);
 
-    // Vanhempi odottaa että lapsi on valmis, alla odotetaan mitä tahansa valmistuvaa lasta
-    for (int i = 0; i < answer; ++i){
-        wait(nullptr);
+            // creating the threads
+            for (int i = 0; i < threadAmount; i++){
+                pthread_create(&threadId[i], NULL, thread_function, NULL);
+            }
+
+            for (int i = 0; i < threadAmount; i++){
+                pthread_join(threadId[i], nullptr);
+            }
+
+            break;
+        }
+        default:
+            cout << "You must give a valid number. 0 or 1" << endl;
+            break;
     }
 
     //tämän tulee kertoa että kaikki rotat ovat päässeet ulos labyrintista
