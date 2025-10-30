@@ -539,7 +539,7 @@ int childProcessHandler(int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId)
     pid_t childpid = fork();
     if (childpid == -1) { perror("fork"); return 1; }
 
-    if (childpid == 0 || childpid == 0) {
+    if (childpid == 0) {
         // child pointer that points to the address in the mainprocess meaning the labyrinth
         cout << "child process id: " << getpid() << endl;
         int (*childPointer)[LEVEYS] = (int (*)[LEVEYS]) shmat(segmentId, NULL, 0);
@@ -562,29 +562,19 @@ int childProcessHandler(int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId)
 }
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+//pthread_cond_t cond = PTHREAD_COND_INITIALIZER; // do we need this??
 
-void* thread_function(void *args){
+// HELPFUL SITE -> https://www.cs.cmu.edu/afs/cs/academic/class/15492-f07/www/pthreads.html#CREATIONTERMINATION
+void* threadFunction(void *arg){
    printf("Thread number %ld\n", pthread_self());
+   //sleep(1);
    pthread_mutex_lock( &mutex );
-   cout << "thread did its job" << endl;
+   aloitaRotta(getpid(), (int (*)[LEVEYS])arg);
+   //cout << "thread did its job" << endl;
    pthread_mutex_unlock( &mutex );
 
    return nullptr;
 }
-
-//int childThreadHandler(__pid_t parentProcessId, int (*memoryPointer)[LEVEYS], sem_t* sem, int segmentId, int threadAmount){
-//    int (*childPointer)[LEVEYS] = (int (*)[LEVEYS]) shmat(segmentId, NULL, 0);
-//
-//    pthread_t threadId[threadAmount];
-//
-//    // creating the threads
-//    for (int i = 0; i < threadAmount; i++){
-//        pthread_create(&threadId[i], NULL, thread_function, NULL);
-//    }
-//
-//    return 0;
-//}
 
 //OPISKELIJA: nykyinen main on näin yksinkertainen, tästä pitää muokata se rinnakkaisuuden pohja
 int main(){
@@ -639,13 +629,13 @@ int main(){
 
             // creating the threads
             for (int i = 0; i < threadAmount; i++){
-                pthread_create(&threadId[i], NULL, thread_function, NULL);
+                pthread_create(&threadId[i], NULL, threadFunction, memoryPointer);
             }
 
+            // joins the threads. Cleans up afterwards when we don't need the threads anymore
             for (int i = 0; i < threadAmount; i++){
                 pthread_join(threadId[i], nullptr);
             }
-
             break;
         }
         default:
